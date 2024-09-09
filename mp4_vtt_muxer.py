@@ -1,7 +1,6 @@
 import os, logging, subprocess
-from typing import Set
 
-SRC_DIR = 'SRC_DIR_HERE'
+SRC_DIR = os.path.join('path here')
 MP4_EXTENSION = '.mp4'
 VTT_EXTENSION = '.vtt'
 SRT_EXTENSION = '.srt'
@@ -14,8 +13,8 @@ class Mp4:
 
     def _write_temp_filename(self) -> None:
         try:
-            os.rename('{}{}'.format(SRC_DIR, self.get_original_filename()),
-                      '{}{}'.format(SRC_DIR, self.get_temp_filename()))
+            os.rename(os.path.join(SRC_DIR, self.get_original_filename()),
+                      os.path.join(SRC_DIR, self.get_temp_filename()))
         except OSError as e:
             logging.error('Error while renaming mp4! Exiting...')
             raise SystemExit(e)
@@ -37,8 +36,8 @@ class Srt:
     def _convert_vtt_to_srt(self) -> None:
         logging.info('Converting subtitles...')
         proc = subprocess.run(['ffmpeg',
-                               '-i', SRC_DIR + self._get_original_filename(),
-                               SRC_DIR + self.get_srt_filename()
+                               '-i', os.path.join(SRC_DIR, self._get_original_filename()),
+                               os.path.join(SRC_DIR, self.get_srt_filename())
                                ],
                                stdout=subprocess.DEVNULL,
                                stderr=subprocess.STDOUT)
@@ -51,8 +50,8 @@ class Srt:
 
     def _write_temp_filename(self) -> None:
         try:
-            os.rename('{}{}'.format(SRC_DIR, self._get_original_filename()),
-                      '{}{}'.format(SRC_DIR, self.get_temp_filename()))
+            os.rename(os.path.join(SRC_DIR, self._get_original_filename()),
+                      os.path.join(SRC_DIR, self.get_temp_filename()))
         except OSError as e:
             logging.error('Error while renaming srt! Exiting...')
             raise SystemExit(e)
@@ -68,19 +67,19 @@ class Srt:
 
 class Mp4SrtHandler:
     def __init__(self) -> None:
-        self.mp4s = set()
-        self.srts = set()
+        self.mp4s = list()
+        self.srts = list()
 
     def add_mp4(self, mp4: Mp4) -> None:
-        self.get_mp4s().add(mp4)
+        self.get_mp4s().append(mp4)
 
     def add_srt(self, srt: Srt) -> None:
-        self.get_srts().add(srt)
+        self.get_srts().append(srt)
 
-    def get_mp4s(self) -> Set[Mp4]:
+    def get_mp4s(self) -> list[Mp4]:
         return self.mp4s
     
-    def get_srts(self) -> Set[Srt]:
+    def get_srts(self) -> list[Srt]:
         return self.srts
 
 class Mp4SrtMuxer:
@@ -93,14 +92,14 @@ class Mp4SrtMuxer:
         for mp4, srt in zip(mp4s_srts.get_mp4s(), mp4s_srts.get_srts()):
             logging.info('Muxing...')
             proc = subprocess.run(['ffmpeg',
-                                   '-i', SRC_DIR + mp4.get_temp_filename(),
-                                   '-i', SRC_DIR + srt.get_temp_filename(),
+                                   '-i', os.path.join(SRC_DIR, mp4.get_temp_filename()),
+                                   '-i', os.path.join(SRC_DIR, srt.get_temp_filename()),
                                    '-c:v', 'copy',
                                    '-c:a', 'copy',
                                    '-c:s', 'mov_text',
                                    '-metadata:s:a:0', 'language=eng',
                                    '-metadata:s:s:0', 'language=eng',
-                                   SRC_DIR + mp4.get_original_filename()
+                                   os.path.join(SRC_DIR, mp4.get_original_filename())
                                    ],
                                    stdout=subprocess.DEVNULL,
                                    stderr=subprocess.STDOUT)
@@ -109,9 +108,9 @@ class Mp4SrtMuxer:
                 logging.info('Successfully muxed {}!'.format(mp4.get_original_filename()))
                 try:
                     logging.info('Removing source files...')
-                    os.remove(SRC_DIR + mp4.get_temp_filename())
-                    os.remove(SRC_DIR + srt.get_temp_filename())
-                    os.remove(SRC_DIR + srt.get_srt_filename())
+                    os.remove(os.path.join(SRC_DIR, mp4.get_temp_filename()))
+                    os.remove(os.path.join(SRC_DIR, srt.get_temp_filename()))
+                    os.remove(os.path.join(SRC_DIR, srt.get_srt_filename()))
                     logging.info('Removed source files!')
                 except OSError as e:
                     logging.error('Failed to remove a file! Exiting...')
